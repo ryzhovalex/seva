@@ -1,0 +1,39 @@
+package components
+
+type IndexArgs struct {
+    View templ.Component
+    HeadTitle string
+    ShouldHideAvatar bool
+}
+
+templ Index(args IndexArgs) {
+    <head>
+        <title>
+            if args.HeadTitle == "" {
+                Alexander Ryzhov
+            } else {
+                {args.HeadTitle}
+            }
+        </title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="/Static/main.css" rel="stylesheet">
+        <script src="/Static/htmx.min.js"></script>
+    </head>
+    <body>
+        <div class="max-w-3xl mx-auto px-4 mt-4 text-xl">
+            <div>
+                Header
+            </div>
+            <div id="view">
+                @args.View
+            </div>
+        </div>
+    </body>
+}
+
+templ NotFound() {
+    <div class="text-3xl font-bold">
+        404: Not Found
+    </div>
+}
