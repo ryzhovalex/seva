@@ -1,12 +1,12 @@
 set shell := ["nu", "-c"]
 
 run: compile
-    @ ./bin/server
+    @ ./Bin/Seva
 
 compile: gentempl buildtailwind
-    @ rm -rf bin
-    @ mkdir bin
-    @ go build -o bin/server
+    @ rm -rf Bin
+    @ mkdir Bin
+    @ go build -o Bin/Seva
 
 gentempl:
     @ cd components

@@ -9,9 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 type IndexArgs struct {
-	View             templ.Component
-	HeadTitle        string
-	ShouldHideAvatar bool
+	View      templ.Component
+	HeadTitle string
 }
 
 func Index(args IndexArgs) templ.Component {
@@ -37,22 +36,26 @@ func Index(args IndexArgs) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if args.HeadTitle == "" {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("Alexander Ryzhov")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("SEVA")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("SEVA: ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(args.HeadTitle)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/components.templ`, Line: 15, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/components.templ`, Line: 14, Col: 37}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><link href=\"/static/main.css\" rel=\"stylesheet\"><script src=\"/static/htmx.min.js\"></script></head><body><div class=\"max-w-3xl mx-auto px-4 mt-4 text-xl\"><div>Header</div><div id=\"view\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><link href=\"/Static/Main.css\" rel=\"stylesheet\"><script src=\"/Static/htmx.min.js\"></script></head><body class=\"bg-black text-white\"><div class=\"max-w-3xl mx-auto px-4 mt-4 text-xl\"><button hx-post=\"/Rpc/Domains/Create\">Create Domain</button><div id=\"view\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

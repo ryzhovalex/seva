@@ -60,7 +60,11 @@ func GetDomainDir(domain string) string {
 }
 
 func CreateDomain(domain string) *utils.Error {
-	e := CheckDomainCreated(domain)
+	if domain == "" {
+		return utils.CreateDefaultError("Domain name is empty.")
+	}
+
+	e := CheckDomainNotCreated(domain)
 	if e != nil {
 		return e
 	}

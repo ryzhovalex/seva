@@ -3,28 +3,25 @@ package components
 type IndexArgs struct {
     View templ.Component
     HeadTitle string
-    ShouldHideAvatar bool
 }
 
 templ Index(args IndexArgs) {
     <head>
         <title>
             if args.HeadTitle == "" {
-                Alexander Ryzhov
+                SEVA
             } else {
-                {args.HeadTitle}
+                SEVA: {args.HeadTitle}
             }
         </title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="/Static/main.css" rel="stylesheet">
+        <link href="/Static/Main.css" rel="stylesheet">
         <script src="/Static/htmx.min.js"></script>
     </head>
-    <body>
+    <body class="bg-black text-white">
         <div class="max-w-3xl mx-auto px-4 mt-4 text-xl">
-            <div>
-                Header
-            </div>
+            <button hx-post="/Rpc/Domains/Create">Create Domain</button>
             <div id="view">
                 @args.View
             </div>
