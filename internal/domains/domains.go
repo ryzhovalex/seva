@@ -8,16 +8,13 @@ import (
 func GetDomains() ([]string, *utils.Error) {
 	dir := "Var/Domains"
 
-	// Read the directory
 	files, be := os.ReadDir(dir)
 	if be != nil {
 		return nil, utils.CreateDefaultErrorFromBase(be)
 	}
 
 	r := []string{}
-	// Iterate over the files and directories
 	for _, file := range files {
-		// Check if the file is a directory
 		if file.IsDir() {
 			r = append(r, file.Name())
 		}
@@ -27,11 +24,8 @@ func GetDomains() ([]string, *utils.Error) {
 }
 
 func CheckDomainNotCreated(domain string) *utils.Error {
-	registered, e := IsDomainCreated(domain)
-	if e != nil {
-		return e
-	}
-	if !registered {
+	e := CheckDomainCreated(domain)
+	if e == nil {
 		return utils.CreateDefaultError("Domain already registered: " + domain)
 	}
 	return nil

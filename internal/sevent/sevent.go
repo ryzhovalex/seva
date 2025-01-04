@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path"
 	"seva/internal/domains"
 	"seva/lib/utils"
+	"sort"
 )
 
 type StateEvent struct {
@@ -94,7 +96,7 @@ func GetSpec(domain string, eventType string) (Spec, *utils.Error) {
 		return nil, e
 	}
 
-	path := domains.GetDomainDir(domain) + "/" + eventType + ".json"
+	path := domains.GetDomainDir(domain) + "/" + eventType + "/SPEC.json"
 	f, be := os.Open(path)
 	if be != nil {
 		return nil, utils.CreateDefaultErrorFromBase(be)
@@ -111,16 +113,107 @@ func GetSpec(domain string, eventType string) (Spec, *utils.Error) {
 	return data, nil
 }
 
-func CreateSpec(domain string, eventType string, spec Spec) *utils.Error {
-	e := domains.CheckDomainCreated(domain)
+func CreateSpec(domain string, eventType string, spec Spec) (*Spec, *utils.Error) {
+	e := CheckSpecNotCreated(domain, eventType)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
 	_, e = GetSpec(domain, eventType)
 	if e == nil {
-		return utils.CreateDefaultError("Event type already exists: " + eventType)
+		return nil, utils.CreateDefaultError("Event type spec already exists: " + eventType)
 	}
 
+	return &spec, nil
+}
+
+func CheckSpecCreated(domain string, eventType string) *utils.Error {
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return e
+	}
+	specPath := domains.GetDomainDir(domain) + "/" + eventType + "/SPEC.json"
+	_, be := os.Stat(specPath)
+	if be != nil {
+		return utils.CreateDefaultError("Spec is not created for event type: " + eventType)
+	}
 	return nil
+}
+
+func CheckSpecNotCreated(domain string, eventType string) *utils.Error {
+	e := CheckSpecCreated(domain, eventType)
+	if e == nil {
+		return utils.CreateDefaultError("Spec is already created for event type: " + eventType)
+	}
+	return nil
+}
+
+func CreateEvent(domain string, eventType string, body any) (*StateEvent, *utils.Error) {
+	e := CheckSpecCreated(domain, eventType)
+	if e != nil {
+		return nil, e
+	}
+
+	// For now don't check spec validity, just insert body as it is.
+	id := utils.MakeUuid()
+	event := StateEvent{
+		Id:   id,
+		Type: eventType,
+		Time: utils.TimeNow(),
+		Body: body,
+	}
+	eventDir := domains.GetDomainDir(domain) + "/" + eventType
+	f, be := os.Create(eventDir + "/" + id + ".json")
+	if be != nil {
+		return nil, utils.CreateDefaultErrorFromBase(be)
+	}
+	defer f.Close()
+
+	jsonBytes, be := json.Marshal(event)
+	if be != nil {
+		return nil, utils.CreateDefaultErrorFromBase(be)
+	}
+
+	_, be = f.Write(jsonBytes)
+	if be != nil {
+		return nil, utils.CreateDefaultErrorFromBase(be)
+	}
+
+	return &event, nil
+}
+
+func GetEvents(domain string) ([]StateEvent, *utils.Error) {
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return nil, e
+	}
+	dir := domains.GetDomainDir(domain)
+
+	files, be := os.ReadDir(dir)
+	if be != nil {
+		return nil, utils.CreateDefaultErrorFromBase(be)
+	}
+
+	events := []StateEvent{}
+	for _, fileEntry := range files {
+		filePath := path.Join(dir, fileEntry.Name())
+		f, be := os.Open(filePath)
+		if be != nil {
+			return nil, utils.CreateDefaultErrorFromBase(be)
+		}
+
+		jsonBytes, be := io.ReadAll(f)
+		if be != nil {
+			return nil, utils.CreateDefaultErrorFromBase(be)
+		}
+		event := StateEvent{}
+		json.Unmarshal(jsonBytes, &event)
+		events = append(events, event)
+	}
+
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Time < events[j].Time
+	})
+
+	return events, nil
 }
