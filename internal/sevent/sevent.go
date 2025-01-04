@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"seva/utils"
+	"seva/internal/domains"
+	"seva/lib/utils"
 )
 
 type StateEvent struct {
@@ -36,17 +37,18 @@ type Field struct {
 
 type TypeToSpec map[string]Spec
 
-func GetDomainDir(domain string) string {
-	return "Var/Domains/" + domain
-}
-
 func GetTypes(domain string) ([]string, *utils.Error) {
-	dir := GetDomainDir(domain)
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return nil, e
+	}
+
+	dir := domains.GetDomainDir(domain)
 
 	// Read the directory
 	files, be := os.ReadDir(dir)
 	if be != nil {
-		return nil, utils.NewDefaultErrorFromBase(be)
+		return nil, utils.CreateDefaultErrorFromBase(be)
 	}
 
 	r := []string{}
@@ -61,6 +63,11 @@ func GetTypes(domain string) ([]string, *utils.Error) {
 }
 
 func GetSpecs(domain string) (TypeToSpec, *utils.Error) {
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return nil, e
+	}
+
 	specs := TypeToSpec{}
 	types, e := GetTypes(domain)
 	if e != nil {
@@ -82,27 +89,38 @@ func GetSpecs(domain string) (TypeToSpec, *utils.Error) {
 }
 
 func GetSpec(domain string, eventType string) (Spec, *utils.Error) {
-	path := GetDomainDir(domain) + "/" + eventType + ".json"
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return nil, e
+	}
+
+	path := domains.GetDomainDir(domain) + "/" + eventType + ".json"
 	f, be := os.Open(path)
 	if be != nil {
-		return nil, utils.NewDefaultErrorFromBase(be)
+		return nil, utils.CreateDefaultErrorFromBase(be)
 	}
 	defer f.Close()
 
 	data := Spec{}
 	b, be := io.ReadAll(f)
 	if be != nil {
-		return nil, utils.NewDefaultErrorFromBase(be)
+		return nil, utils.CreateDefaultErrorFromBase(be)
 	}
 	json.Unmarshal(b, &data)
 
 	return data, nil
 }
 
-func NewSpec(domain string, eventType string, spec Spec) *utils.Error {
-	_, e := GetSpec(domain, eventType)
-	if e == nil {
-		return utils.NewDefaultError("Event type already exists: " + eventType)
+func CreateSpec(domain string, eventType string, spec Spec) *utils.Error {
+	e := domains.CheckDomainCreated(domain)
+	if e != nil {
+		return e
 	}
+
+	_, e = GetSpec(domain, eventType)
+	if e == nil {
+		return utils.CreateDefaultError("Event type already exists: " + eventType)
+	}
+
 	return nil
 }
