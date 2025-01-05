@@ -12,9 +12,8 @@ export default {
 				"c3": "#146c11",
 				"c4": "#199515",
 				"c5": "#000000"
-			}
+			},
 		}
 	},
-
 	plugins: []
 } satisfies Config;

@@ -32,7 +32,6 @@ const (
 	Boolean FieldType = "boolean"
 	Array   FieldType = "array"
 	Object  FieldType = "object"
-	Null    FieldType = "null"
 )
 
 type Field struct {
@@ -224,14 +223,14 @@ func GetEvents(domain string) ([]StateEvent, *utils.Error) {
 	return events, nil
 }
 
-type CreateEventForm struct {
+type CreateEventData struct {
 	Domain    string
 	EventType string
 	Body      string
 }
 
 func RpcCreateEvent(c *gin.Context) {
-	var form CreateEventForm
+	var form CreateEventData
 	be := c.Bind(&form)
 	if be != nil {
 		rpc.Error(c, utils.BE(be))
