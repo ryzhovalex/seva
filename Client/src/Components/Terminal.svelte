@@ -19,7 +19,7 @@
     function send() {
         let context = {
             Prompt: prompt,
-            Send: (component) => {receiveComponent(component)},
+            Send: receiveComponent,
             ShowPrompt: () => {},
             HidePrompt: () => {},
             ClearHistory: () => {
@@ -27,8 +27,10 @@
                 historyPrompts = []
             }
         }
-        historyComponents = [...historyComponents, {Context: context, Component: HistoryPrompt}]
+        historyComponents = [
+            ...historyComponents, {Context: context, Component: HistoryPrompt}]
         historyPrompts = [...historyPrompts, prompt]
+
         setTimeout(() => {
             main.scrollTop = main.scrollHeight
         }, 100);

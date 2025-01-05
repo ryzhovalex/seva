@@ -20,8 +20,10 @@ export function ExecuteCommand(c: Context): any {
     if (fn == undefined) {
         if (c.Prompt != "") {
             c.Send(UnknownCommand)
+            return
         }
         c.Send(null)
+        return
     }
     c.Send(fn(c))
 }
