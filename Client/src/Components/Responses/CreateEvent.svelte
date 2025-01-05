@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from "svelte"
-    import { Rpc } from "../lib/Rpc"
+    import { Rpc } from "../../lib/Rpc"
 	import type { Context } from "$lib/Commands";
-	import Ok from "./Ok.svelte";
+    import Text from "./Text.svelte"
 
     export let C: Context
 
@@ -18,14 +18,23 @@
 
     function updateBody(event) {
         let key = event.target.name
-        body[key] = event.target.value
+        let spec = chosenSpec[key]
+        if (spec == null) {
+            return
+        }
+        let value = event.target.value
+        if (spec.Type == "boolean") {
+            value = value === "true" || value === "1" || value === true || value === 1
+        }
+        body[key] = value
     }
 
     async function submit(event) {
         event.preventDefault()
         await Rpc("Sevent/CreateEvent", {Domain: chosenDomain, EventType: chosenEventType, Body: body})
-        C.ShowPrompt()
-        C.Send(Ok)
+        C.Reset()
+        C.Extra.Set("Text", "EVENT CREATED")
+        C.Send(Text)
     }
 
     async function onDomainSelected(event) {
