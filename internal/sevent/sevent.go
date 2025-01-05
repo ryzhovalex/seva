@@ -14,32 +14,36 @@ type StateEvent struct {
 	Id   string
 	Type string
 	Time utils.Time
-	Body any
+	Body map[string]any
 }
 
-type Spec []Field
+// Fields by their names.
+type Spec map[string]Field
 
-type FieldType int
+type FieldType string
 
 const (
-	String FieldType = iota
-	Number
-	Boolean
-	Array
-	Object
-	Null
+	String  FieldType = "string"
+	Number  FieldType = "number"
+	Boolean FieldType = "boolean"
+	Array   FieldType = "array"
+	Object  FieldType = "object"
+	Null    FieldType = "null"
 )
 
 type Field struct {
-	Name string
-	// Array of contained specs. For Type=Array their name is not considered.
-	// For Type=Object each subspec name is a key in the nested object.
-	ContainedSpecs []Field
+	Type FieldType
+	// Array of contained specs.
+	// For array: their name is not considered.
+	// For array: only first field is considered, since we allow only for
+	// 			  same-type arrays.
+	// For object: each subspec name is a key in the nested object.
+	Fields []Field
 }
 
 type TypeToSpec map[string]Spec
 
-func GetTypes(domain string) ([]string, *utils.Error) {
+func GetEventTypes(domain string) ([]string, *utils.Error) {
 	e := domains.CheckDomainCreated(domain)
 	if e != nil {
 		return nil, e
@@ -71,7 +75,7 @@ func GetSpecs(domain string) (TypeToSpec, *utils.Error) {
 	}
 
 	specs := TypeToSpec{}
-	types, e := GetTypes(domain)
+	types, e := GetEventTypes(domain)
 	if e != nil {
 		return nil, e
 	}
@@ -96,7 +100,7 @@ func GetSpec(domain string, eventType string) (Spec, *utils.Error) {
 		return nil, e
 	}
 
-	path := domains.GetDomainDir(domain) + "/" + eventType + "/SPEC.json"
+	path := domains.GetDomainDir(domain) + "/Specs/" + eventType + ".json"
 	f, be := os.Open(path)
 	if be != nil {
 		return nil, utils.CreateDefaultErrorFromBase(be)
@@ -132,7 +136,7 @@ func CheckSpecCreated(domain string, eventType string) *utils.Error {
 	if e != nil {
 		return e
 	}
-	specPath := domains.GetDomainDir(domain) + "/" + eventType + "/SPEC.json"
+	specPath := domains.GetDomainDir(domain) + "/Specs/" + eventType + ".json"
 	_, be := os.Stat(specPath)
 	if be != nil {
 		return utils.CreateDefaultError("Spec is not created for event type: " + eventType)
@@ -148,7 +152,7 @@ func CheckSpecNotCreated(domain string, eventType string) *utils.Error {
 	return nil
 }
 
-func CreateEvent(domain string, eventType string, body any) (*StateEvent, *utils.Error) {
+func CreateEvent(domain string, eventType string, body map[string]any) (*StateEvent, *utils.Error) {
 	e := CheckSpecCreated(domain, eventType)
 	if e != nil {
 		return nil, e
@@ -162,8 +166,8 @@ func CreateEvent(domain string, eventType string, body any) (*StateEvent, *utils
 		Time: utils.TimeNow(),
 		Body: body,
 	}
-	eventDir := domains.GetDomainDir(domain) + "/" + eventType
-	f, be := os.Create(eventDir + "/" + id + ".json")
+	domainDir := domains.GetDomainDir(domain)
+	f, be := os.Create(domainDir + "/" + id + ".json")
 	if be != nil {
 		return nil, utils.CreateDefaultErrorFromBase(be)
 	}

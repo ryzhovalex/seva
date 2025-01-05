@@ -17,7 +17,7 @@ type Id = uint64
 type Uuid = string
 
 func MakeUuid() Uuid {
-	return uuid.New().String()
+	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
 
 // Basic time defined in milliseconds.

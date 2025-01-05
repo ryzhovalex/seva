@@ -112,7 +112,7 @@ func Home() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<a href=\"/CreateDomain\">Create Domain</a>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<form hx-post=\"/Rpc/Sevent/Create\" hx-validate=\"true\" class=\"flex flex-col gap-2\"><select name=\"Domain\"><option value=\"Sports\">Sports</option></select> <select name=\"EventType\"><option value=\"TimelineSet\">TimelineSet</option> <option value=\"Sports\">Sports</option></select> <input type=\"text\" name=\"Body\"> <input type=\"submit\" value=\"Submit\"></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

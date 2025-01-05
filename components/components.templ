@@ -34,7 +34,18 @@ templ Index(args IndexArgs) {
 }
 
 templ Home() {
-    <a href="/CreateDomain">Create Domain</a>
+    <form hx-post="/Rpc/Sevent/Create" hx-validate="true" class="flex flex-col gap-2">
+        <select name="Domain">
+            <option value="Sports">Sports</option>
+        </select>
+        <select name="EventType">
+            <option value="TimelineSet">TimelineSet</option>
+            <option value="Sports">Sports</option>
+        </select>
+        <input type="text" name="Body" />
+
+        <input type="submit" value="Submit" />
+    </form>
 }
 
 templ CreateDomain() {

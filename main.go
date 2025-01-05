@@ -6,6 +6,7 @@ import (
 	"io"
 	"seva/components"
 	"seva/internal/domains"
+	"seva/internal/sevent"
 	"seva/lib/rpc"
 	"seva/lib/utils"
 	"strings"
@@ -80,17 +81,50 @@ func RpcCreateDomain(c *gin.Context) {
 	rpc.Ok(c, 0, nil)
 }
 
+type CreateEvent struct {
+	Domain    string
+	EventType string
+	Body      string
+}
+
+func RpcCreateEvent(c *gin.Context) {
+	var createData CreateEvent
+	be := c.Bind(&createData)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	var body map[string]any
+	be = json.Unmarshal([]byte(createData.Body), &body)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	event, e := sevent.CreateEvent(
+		createData.Domain, createData.EventType, body,
+	)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+
+	rpc.Ok(c, 0, event)
+}
+
 func createServer() *gin.Engine {
 	server := gin.New()
 	server.Use(gin.Recovery())
 	server.Use(cors.Default())
 
-	server.GET("/", renderView(components.Home(), 200, "Home"))
-	server.GET("/CreateDomain", renderView(components.CreateDomain(), 200, "Create Domain"))
+	server.GET("/", renderView(components.Home(), 200, "HOME"))
+	server.GET("/CreateDomain", renderView(components.CreateDomain(), 200, "CREATE DOMAIN"))
 	server.GET("/favicon.ico", getFavicon)
 	server.GET("/Static/:Name", getStatic)
 
 	server.POST("/Rpc/Domains/Create", RpcCreateDomain)
+	server.POST("/Rpc/Sevent/Create", RpcCreateEvent)
 
 	return server
 }
