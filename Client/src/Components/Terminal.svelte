@@ -9,31 +9,42 @@
         }
     }
 
-    let history = []
+    let historyComponents = []
+    let historyPrompts = []
     let main = null
     onMount(() => {
         main = document.getElementById("Main")
     })
 
     function send() {
-        context = {
-            Prompt: prompt
+        let context = {
+            Prompt: prompt,
+            ClearHistory: () => {
+                historyComponents = []
+                historyPrompts = []
+            }
         }
-        ExecuteCommand(context)
-        history = [...history, HistoryPrompt]
+        historyComponents = [...historyComponents, {Context: context, Component: HistoryPrompt}]
+        historyPrompts = [...historyPrompts, prompt]
         setTimeout(() => {
             main.scrollTop = main.scrollHeight
         }, 100);
         prompt = ""
+
+        let response = ExecuteCommand(context)
+        if (response != null) {
+            historyComponents = [...historyComponents, {Context: context, Component: response}]
+        }
     }
 
     let prompt = ""
-    let context: Context = null
 </script>
 
-{#each history as item}
-    <svelte:component this={item} Context={context}/>
-{/each}
+<div class="flex flex-col gap-4 mb-4">
+    {#each historyComponents as item}
+        <svelte:component this={item.Component} C={item.Context}/>
+    {/each}
+</div>
 
 <div class="flex flex-row items-center gap-2">
     <div>></div>
