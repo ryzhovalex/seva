@@ -1,15 +1,21 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount } from "svelte"
+    import { Rpc } from "../lib/Rpc"
 
     let domain = ""
+    let domains = []
 
-    function submit(event: Event) {
+    function submit(event) {
         event.preventDefault()
         console.log(domain)
     }
 
+    function onDomainSelected(event) {
+        console.log(domain)
+    }
+
     onMount(async () => {
-        const response = await fetch("localhost:3000/Rpc/Domains/GetDomains")
+        domains = await Rpc("Domains/GetDomains")
     })
 </script>
 
@@ -19,11 +25,13 @@
         <br/>
         ------------
     </div>
-    <form class="flex flex-col justify-start items-start mt-2 gap-2" on:submit={submit}>
+    <form class="flex flex-col justify-start items-start mt-2 gap-2" on:submit={submit} on:change={onDomainSelected}>
         <div>
             Domain:
             <select name="Domain" bind:value={domain}>
-                <option value="Sports">Sports</option>
+                {#each domains as domain}
+                    <option value="{domain}">{domain}</option>
+                {/each}
             </select>
         </div>
 

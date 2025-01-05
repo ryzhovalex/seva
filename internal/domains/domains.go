@@ -4,7 +4,6 @@ import (
 	"os"
 	"seva/lib/rpc"
 	"seva/lib/utils"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -81,20 +80,23 @@ func createDomain(domain string) *utils.Error {
 	return nil
 }
 
-func RpcCreateDomain(c *gin.Context) {
-	domain, e := rpc.TextRequestBody(c)
-	if e != nil {
-		rpc.Error(c, e)
-		return
-	}
-	domain = strings.Replace(domain, "Domain=", "", 1)
+type CreateDomainData struct {
+	Domain string
+}
 
-	e = createDomain(domain)
+func RpcCreateDomain(c *gin.Context) {
+	var data CreateDomainData
+	be := c.Bind(&data)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	e := createDomain(data.Domain)
 	if e != nil {
 		rpc.Error(c, e)
 		return
 	}
-	c.Header("HX-Redirect", "/")
 	rpc.Ok(c, 0, nil)
 }
 
