@@ -6,8 +6,11 @@ import (
 	"os"
 	"path"
 	"seva/internal/domains"
+	"seva/lib/rpc"
 	"seva/lib/utils"
 	"sort"
+
+	"github.com/gin-gonic/gin"
 )
 
 type StateEvent struct {
@@ -220,4 +223,36 @@ func GetEvents(domain string) ([]StateEvent, *utils.Error) {
 	})
 
 	return events, nil
+}
+
+type CreateEventForm struct {
+	Domain    string
+	EventType string
+	Body      string
+}
+
+func RpcCreateEvent(c *gin.Context) {
+	var form CreateEventForm
+	be := c.Bind(&form)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	var body map[string]any
+	be = json.Unmarshal([]byte(form.Body), &body)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	event, e := CreateEvent(
+		form.Domain, form.EventType, body,
+	)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+
+	rpc.Ok(c, 0, event)
 }

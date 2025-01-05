@@ -2,10 +2,14 @@ package domains
 
 import (
 	"os"
+	"seva/lib/rpc"
 	"seva/lib/utils"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-func GetDomains() ([]string, *utils.Error) {
+func GetAll() ([]string, *utils.Error) {
 	dir := "Var/Domains"
 
 	files, be := os.ReadDir(dir)
@@ -43,7 +47,7 @@ func CheckDomainCreated(domain string) *utils.Error {
 }
 
 func IsDomainCreated(domain string) (bool, *utils.Error) {
-	domains, e := GetDomains()
+	domains, e := GetAll()
 	if e != nil {
 		return false, e
 	}
@@ -59,7 +63,7 @@ func GetDomainDir(domain string) string {
 	return "Var/Domains/" + domain
 }
 
-func CreateDomain(domain string) *utils.Error {
+func createDomain(domain string) *utils.Error {
 	if domain == "" {
 		return utils.CreateDefaultError("Domain name is empty.")
 	}
@@ -75,4 +79,29 @@ func CreateDomain(domain string) *utils.Error {
 	}
 
 	return nil
+}
+
+func RpcCreateDomain(c *gin.Context) {
+	domain, e := rpc.TextRequestBody(c)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+	domain = strings.Replace(domain, "Domain=", "", 1)
+
+	e = createDomain(domain)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+	c.Header("HX-Redirect", "/")
+	rpc.Ok(c, 0, nil)
+}
+
+func RpcGetDomains(c *gin.Context) {
+	r, e := GetAll()
+	if e != nil {
+		rpc.Error(c, e)
+	}
+	rpc.Ok(c, 0, r)
 }
