@@ -19,6 +19,9 @@
     function send() {
         let context = {
             Prompt: prompt,
+            Send: (component) => {receiveComponent(component)},
+            ShowPrompt: () => {},
+            HidePrompt: () => {},
             ClearHistory: () => {
                 historyComponents = []
                 historyPrompts = []
@@ -31,9 +34,12 @@
         }, 100);
         prompt = ""
 
-        let response = ExecuteCommand(context)
-        if (response != null) {
-            historyComponents = [...historyComponents, {Context: context, Component: response}]
+        ExecuteCommand(context)
+    }
+
+    function receiveComponent(component: any) {
+        if (component != null) {
+            historyComponents = [...historyComponents, {Context: this, Component: component}]
         }
     }
 

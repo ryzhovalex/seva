@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from "svelte"
     import { Rpc } from "../lib/Rpc"
+	import type { Context } from "$lib/Commands";
+	import Ok from "./Ok.svelte";
+
+    export let C: Context
 
     let chosenDomain = ""
     let chosenSpec: {[Key: string]: {Type: string, Fields: any[]}} = null
@@ -9,9 +13,6 @@
     let domains = []
     let specs = null
     let eventTypes = []
-
-    let successed = false
-    let successTimeoutId = null
 
     let body = {}
 
@@ -23,15 +24,8 @@
     async function submit(event) {
         event.preventDefault()
         await Rpc("Sevent/CreateEvent", {Domain: chosenDomain, EventType: chosenEventType, Body: body})
-        successed = true
-        if (successTimeoutId != null) {
-            clearTimeout(successTimeoutId)
-            successTimeoutId = null
-        }
-        successTimeoutId = setTimeout(() => {
-            successed = false
-            successTimeoutId = null
-        }, 3000)
+        C.ShowPrompt()
+        C.Send(Ok)
     }
 
     async function onDomainSelected(event) {
@@ -105,9 +99,6 @@
 
         <div class="flex flex-row gap-2">
             <button type="submit" class="bg-c0 p-1 hover:bg-c1">SUBMIT</button>
-            {#if successed}
-                <div>OK!</div>
-            {/if}
         </div>
     </form>
 </div>
