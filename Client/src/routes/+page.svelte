@@ -1,5 +1,5 @@
 <script>
-	import CreateEvent from "../Components/CreateEvent.svelte";
-
+	import Terminal from "../Components/Terminal.svelte";
 </script>
-<CreateEvent/>
+
+<Terminal/>

@@ -226,7 +226,7 @@ func GetEvents(domain string) ([]StateEvent, *utils.Error) {
 type CreateEventData struct {
 	Domain    string
 	EventType string
-	Body      string
+	Body      map[string]any
 }
 
 func RpcCreateEvent(c *gin.Context) {
@@ -237,15 +237,15 @@ func RpcCreateEvent(c *gin.Context) {
 		return
 	}
 
-	var body map[string]any
-	be = json.Unmarshal([]byte(form.Body), &body)
-	if be != nil {
-		rpc.Error(c, utils.BE(be))
-		return
-	}
+	// var body map[string]any
+	// be = json.Unmarshal([]byte(form.Body), &body)
+	// if be != nil {
+	// 	rpc.Error(c, utils.BE(be))
+	// 	return
+	// }
 
 	event, e := CreateEvent(
-		form.Domain, form.EventType, body,
+		form.Domain, form.EventType, form.Body,
 	)
 	if e != nil {
 		rpc.Error(c, e)

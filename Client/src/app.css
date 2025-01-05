@@ -55,6 +55,10 @@ body {
     font-family: 'Monaco', 'Courier New', monospace;
 }
 
+body, html {
+    height: 100%;
+}
+
 input {
 	@apply bg-c0 p-1 focus:ring-c1 focus:border-c1 border border-c1;
 }

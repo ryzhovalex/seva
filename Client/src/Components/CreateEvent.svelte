@@ -4,13 +4,34 @@
 
     let chosenDomain = ""
     let chosenSpec: {[Key: string]: {Type: string, Fields: any[]}} = null
+    let chosenEventType = ""
 
     let domains = []
     let specs = null
     let eventTypes = []
 
-    function submit(event) {
+    let successed = false
+    let successTimeoutId = null
+
+    let body = {}
+
+    function updateBody(event) {
+        let key = event.target.name
+        body[key] = event.target.value
+    }
+
+    async function submit(event) {
         event.preventDefault()
+        await Rpc("Sevent/CreateEvent", {Domain: chosenDomain, EventType: chosenEventType, Body: body})
+        successed = true
+        if (successTimeoutId != null) {
+            clearTimeout(successTimeoutId)
+            successTimeoutId = null
+        }
+        successTimeoutId = setTimeout(() => {
+            successed = false
+            successTimeoutId = null
+        }, 3000)
     }
 
     async function onDomainSelected(event) {
@@ -22,8 +43,8 @@
     }
 
     async function onEventTypeSelected(event) {
-        chosenSpec = specs[event.target.value]
-        console.log(chosenSpec)
+        chosenEventType = event.target.value
+        chosenSpec = specs[chosenEventType]
     }
 
     onMount(async () => {
@@ -67,11 +88,11 @@
                     <div>
                         {key}:
                         {#if field.Type == "string"}
-                            <input type="text" name="{key}"/>
+                            <input type="text" name="{key}" on:change={updateBody}/>
                         {:else if field.Type == "number"}
-                            <input type="number" name="{key}" value="0"/>
+                            <input type="number" name="{key}" value="0" on:change={updateBody}/>
                         {:else if field.Type == "boolean"}
-                            <input type="checkbox" name="{key}" value="false" class="w-6 h-6"/>
+                            <input type="checkbox" name="{key}" value="false" class="w-6 h-6" on:change={updateBody}/>
                         {:else if field.Type == "array"}
                             ...array here
                         {:else if field.Type == "object"}
@@ -82,6 +103,11 @@
             </div>
         {/if}
 
-        <button type="submit" class="bg-c0 p-1 hover:bg-c1">SUBMIT</button>
+        <div class="flex flex-row gap-2">
+            <button type="submit" class="bg-c0 p-1 hover:bg-c1">SUBMIT</button>
+            {#if successed}
+                <div>OK!</div>
+            {/if}
+        </div>
     </form>
 </div>
