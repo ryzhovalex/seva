@@ -9,6 +9,7 @@ import (
 	"seva/lib/rpc"
 	"seva/lib/utils"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,18 +55,16 @@ func GetEventTypes(domain string) ([]string, *utils.Error) {
 
 	dir := domains.GetDomainDir(domain)
 
-	// Read the directory
-	files, be := os.ReadDir(dir)
+	// Event types can be effectively fetched from Var/Domains/DOMAIN/Specs/...
+	files, be := os.ReadDir(dir + "/Specs")
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 
 	r := []string{}
-	// Iterate over the files and directories
 	for _, file := range files {
-		// Check if the file is a directory
-		if file.IsDir() {
-			r = append(r, file.Name())
+		if strings.HasSuffix(file.Name(), ".json") {
+			r = append(r, strings.Replace(file.Name(), ".json", "", 1))
 		}
 	}
 	return r, nil
@@ -106,14 +105,14 @@ func GetSpec(domain string, eventType string) (Spec, *utils.Error) {
 	path := domains.GetDomainDir(domain) + "/Specs/" + eventType + ".json"
 	f, be := os.Open(path)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 	defer f.Close()
 
 	data := Spec{}
 	b, be := io.ReadAll(f)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 	json.Unmarshal(b, &data)
 
@@ -128,7 +127,7 @@ func CreateSpec(domain string, eventType string, spec Spec) (*Spec, *utils.Error
 
 	_, e = GetSpec(domain, eventType)
 	if e == nil {
-		return nil, utils.CreateDefaultError("Event type spec already exists: " + eventType)
+		return nil, utils.DE("Event type spec already exists: " + eventType)
 	}
 
 	return &spec, nil
@@ -142,7 +141,7 @@ func CheckSpecCreated(domain string, eventType string) *utils.Error {
 	specPath := domains.GetDomainDir(domain) + "/Specs/" + eventType + ".json"
 	_, be := os.Stat(specPath)
 	if be != nil {
-		return utils.CreateDefaultError("Spec is not created for event type: " + eventType)
+		return utils.DE("Spec is not created for event type: " + eventType)
 	}
 	return nil
 }
@@ -150,7 +149,7 @@ func CheckSpecCreated(domain string, eventType string) *utils.Error {
 func CheckSpecNotCreated(domain string, eventType string) *utils.Error {
 	e := CheckSpecCreated(domain, eventType)
 	if e == nil {
-		return utils.CreateDefaultError("Spec is already created for event type: " + eventType)
+		return utils.DE("Spec is already created for event type: " + eventType)
 	}
 	return nil
 }
@@ -172,18 +171,18 @@ func CreateEvent(domain string, eventType string, body map[string]any) (*StateEv
 	domainDir := domains.GetDomainDir(domain)
 	f, be := os.Create(domainDir + "/" + id + ".json")
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 	defer f.Close()
 
 	jsonBytes, be := json.Marshal(event)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 
 	_, be = f.Write(jsonBytes)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 
 	return &event, nil
@@ -198,7 +197,7 @@ func GetEvents(domain string) ([]StateEvent, *utils.Error) {
 
 	files, be := os.ReadDir(dir)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 
 	events := []StateEvent{}
@@ -206,12 +205,12 @@ func GetEvents(domain string) ([]StateEvent, *utils.Error) {
 		filePath := path.Join(dir, fileEntry.Name())
 		f, be := os.Open(filePath)
 		if be != nil {
-			return nil, utils.CreateDefaultErrorFromBase(be)
+			return nil, utils.BE(be)
 		}
 
 		jsonBytes, be := io.ReadAll(f)
 		if be != nil {
-			return nil, utils.CreateDefaultErrorFromBase(be)
+			return nil, utils.BE(be)
 		}
 		event := StateEvent{}
 		json.Unmarshal(jsonBytes, &event)
@@ -235,14 +234,14 @@ func RpcCreateEvent(c *gin.Context) {
 	var form CreateEventForm
 	be := c.Bind(&form)
 	if be != nil {
-		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		rpc.Error(c, utils.BE(be))
 		return
 	}
 
 	var body map[string]any
 	be = json.Unmarshal([]byte(form.Body), &body)
 	if be != nil {
-		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		rpc.Error(c, utils.BE(be))
 		return
 	}
 
@@ -257,22 +256,38 @@ func RpcCreateEvent(c *gin.Context) {
 	rpc.Ok(c, event)
 }
 
-type GetEventsData struct {
+type DomainData struct {
 	Domain string
 }
 
 func RpcGetEvents(c *gin.Context) {
-	var data GetEventsData
+	var data DomainData
 	be := c.Bind(&data)
 	if be != nil {
-		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		rpc.Error(c, utils.BE(be))
 		return
 	}
 
-	events, e := GetEvents(data.Domain)
+	r, e := GetEvents(data.Domain)
 	if e != nil {
 		rpc.Error(c, e)
 		return
 	}
-	rpc.Ok(c, events)
+	rpc.Ok(c, r)
+}
+
+func RpcGetSpecs(c *gin.Context) {
+	var data DomainData
+	be := c.Bind(&data)
+	if be != nil {
+		rpc.Error(c, utils.BE(be))
+		return
+	}
+
+	r, e := GetSpecs(data.Domain)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+	rpc.Ok(c, r)
 }

@@ -13,7 +13,7 @@ func GetAll() ([]string, *utils.Error) {
 
 	files, be := os.ReadDir(dir)
 	if be != nil {
-		return nil, utils.CreateDefaultErrorFromBase(be)
+		return nil, utils.BE(be)
 	}
 
 	r := []string{}
@@ -29,7 +29,7 @@ func GetAll() ([]string, *utils.Error) {
 func CheckDomainNotCreated(domain string) *utils.Error {
 	e := CheckDomainCreated(domain)
 	if e == nil {
-		return utils.CreateDefaultError("Domain already registered: " + domain)
+		return utils.DE("Domain already registered: " + domain)
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func CheckDomainCreated(domain string) *utils.Error {
 		return e
 	}
 	if !registered {
-		return utils.CreateDefaultError("Domain not registered: " + domain)
+		return utils.DE("Domain not registered: " + domain)
 	}
 	return nil
 }
@@ -64,7 +64,7 @@ func GetDomainDir(domain string) string {
 
 func createDomain(domain string) *utils.Error {
 	if domain == "" {
-		return utils.CreateDefaultError("Domain name is empty.")
+		return utils.DE("Domain name is empty.")
 	}
 
 	e := CheckDomainNotCreated(domain)
@@ -74,7 +74,7 @@ func createDomain(domain string) *utils.Error {
 
 	be := os.Mkdir("Var/Domains/"+domain, 0755)
 	if be != nil {
-		return utils.CreateDefaultErrorFromBase(be)
+		return utils.BE(be)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func RpcCreateDomain(c *gin.Context) {
 	var data CreateDomainData
 	be := c.Bind(&data)
 	if be != nil {
-		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		rpc.Error(c, utils.BE(be))
 		return
 	}
 

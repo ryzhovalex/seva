@@ -11,7 +11,8 @@
     }
 
     async function onDomainSelected(event) {
-        let events = await Rpc("Sevent/GetEvents")
+        let specs = await Rpc("Sevent/GetSpecs", {Domain: domain})
+        console.log(specs)
     }
 
     onMount(async () => {

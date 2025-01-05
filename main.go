@@ -17,6 +17,7 @@ func createServer() *gin.Engine {
 	server.POST("/Rpc/Domains/GetDomains", domains.RpcGetDomains)
 
 	server.POST("/Rpc/Sevent/CreateEvent", sevent.RpcCreateEvent)
+	server.POST("/Rpc/Sevent/GetSpecs", sevent.RpcGetSpecs)
 	server.POST("/Rpc/Sevent/GetEvents", sevent.RpcGetEvents)
 
 	return server
