@@ -2,16 +2,16 @@ package components
 
 type IndexArgs struct {
     View templ.Component
-    HeadTitle string
+    Title string
 }
 
 templ Index(args IndexArgs) {
     <head>
         <title>
-            if args.HeadTitle == "" {
+            if args.Title == "" {
                 SEVA
             } else {
-                SEVA: {args.HeadTitle}
+                SEVA: {args.Title}
             }
         </title>
         <meta charset="UTF-8">
@@ -19,14 +19,29 @@ templ Index(args IndexArgs) {
         <link href="/Static/Main.css" rel="stylesheet">
         <script src="/Static/htmx.min.js"></script>
     </head>
-    <body class="bg-black text-white">
-        <div class="max-w-3xl mx-auto px-4 mt-4 text-xl">
-            <button hx-post="/Rpc/Domains/Create">Create Domain</button>
-            <div id="view">
+    <body class="bg-black text-c60-text text-xl">
+        <div class="max-w-3xl mx-auto px-4 mt-4">
+            if args.Title != "" {
+                <div class="container text-center text-4xl mt-2">
+                    {args.Title}
+                </div>
+            }
+            <div id="View">
                 @args.View
             </div>
         </div>
     </body>
+}
+
+templ Home() {
+    <a href="/CreateDomain">Create Domain</a>
+}
+
+templ CreateDomain() {
+    <form hx-post="/Rpc/Domains/Create" hx-validate="true">
+        <input type="text" name="Domain" hx-validate="required" />
+        <input type="submit" value="Submit" />
+    </form>
 }
 
 templ NotFound() {

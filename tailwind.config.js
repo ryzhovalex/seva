@@ -2,7 +2,11 @@
 module.exports = {
   content: ["./**/*.{html,js,go}"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "c60-text": "#199515"
+      }
+    },
   },
   plugins: [],
 }

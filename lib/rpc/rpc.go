@@ -11,8 +11,8 @@ func Error(c *gin.Context, e *utils.Error) {
 }
 
 func Ok(c *gin.Context, code utils.Code, body any) {
-	if code >= 0 {
-		panic("Ok code must be negative.")
+	if code > 0 {
+		panic("Ok code must be 0 or negative.")
 	}
 	c.JSON(200, gin.H{"Code": code, "Body": body})
 }

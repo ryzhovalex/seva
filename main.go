@@ -8,18 +8,20 @@ import (
 	"seva/internal/domains"
 	"seva/lib/rpc"
 	"seva/lib/utils"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func viewRenderer(
+func renderView(
 	view templ.Component,
 	status int,
+	title string,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		component := components.Index(components.IndexArgs{View: view})
+		component := components.Index(components.IndexArgs{View: view, Title: title})
 		c.Status(status)
 		component.Render(context.Background(), c.Writer)
 	}
@@ -67,11 +69,14 @@ func RpcCreateDomain(c *gin.Context) {
 		rpc.Error(c, e)
 		return
 	}
+	domain = strings.Replace(domain, "Domain=", "", 1)
+
 	e = domains.CreateDomain(domain)
 	if e != nil {
 		rpc.Error(c, e)
 		return
 	}
+	c.Header("HX-Redirect", "/")
 	rpc.Ok(c, 0, nil)
 }
 
@@ -80,7 +85,8 @@ func createServer() *gin.Engine {
 	server.Use(gin.Recovery())
 	server.Use(cors.Default())
 
-	server.GET("/", viewRenderer(components.NotFound(), 200))
+	server.GET("/", renderView(components.Home(), 200, "Home"))
+	server.GET("/CreateDomain", renderView(components.CreateDomain(), 200, "Create Domain"))
 	server.GET("/favicon.ico", getFavicon)
 	server.GET("/Static/:Name", getStatic)
 
