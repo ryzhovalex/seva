@@ -10,8 +10,8 @@
         console.log(domain)
     }
 
-    function onDomainSelected(event) {
-        console.log(domain)
+    async function onDomainSelected(event) {
+        let events = await Rpc("Sevent/GetEvents")
     }
 
     onMount(async () => {

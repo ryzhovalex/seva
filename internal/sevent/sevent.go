@@ -254,5 +254,25 @@ func RpcCreateEvent(c *gin.Context) {
 		return
 	}
 
-	rpc.Ok(c, 0, event)
+	rpc.Ok(c, event)
+}
+
+type GetEventsData struct {
+	Domain string
+}
+
+func RpcGetEvents(c *gin.Context) {
+	var data GetEventsData
+	be := c.Bind(&data)
+	if be != nil {
+		rpc.Error(c, utils.CreateDefaultErrorFromBase(be))
+		return
+	}
+
+	events, e := GetEvents(data.Domain)
+	if e != nil {
+		rpc.Error(c, e)
+		return
+	}
+	rpc.Ok(c, events)
 }

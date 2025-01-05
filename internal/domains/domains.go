@@ -97,7 +97,7 @@ func RpcCreateDomain(c *gin.Context) {
 		rpc.Error(c, e)
 		return
 	}
-	rpc.Ok(c, 0, nil)
+	rpc.Ok(c, nil)
 }
 
 func RpcGetDomains(c *gin.Context) {
@@ -105,5 +105,5 @@ func RpcGetDomains(c *gin.Context) {
 	if e != nil {
 		rpc.Error(c, e)
 	}
-	rpc.Ok(c, 0, r)
+	rpc.Ok(c, r)
 }
