@@ -78,7 +78,7 @@ func Prompt(text string, callback func(answer bool) int) {
 	}
 	prompted = true
 	prompted_callback = callback
-	fmt.Println(text + " [Y/N]")
+	bone.Log(text + " [Y/N]")
 }
 
 func process_input(input string) {

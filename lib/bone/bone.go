@@ -81,7 +81,7 @@ func Init(project_name string) int {
 	Mkdir(baseVardir)
 
 	if cfgpath == "" {
-		cfgpath = Vardir("user.cfg")
+		cfgpath = Userdir("user.cfg")
 	}
 	e := Touch(cfgpath)
 	if e != nil {
@@ -237,7 +237,7 @@ func Cwd(pathParts ...string) string {
 }
 
 // Access var directory contents.
-func Vardir(pathParts ...string) string {
+func Userdir(pathParts ...string) string {
 	// Secure
 	p := strings.Join(pathParts, "/")
 	p = strings.ReplaceAll(p, "\\", "/")
