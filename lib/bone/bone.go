@@ -32,7 +32,7 @@ func Init(project_name string) int {
 		return 1
 	}
 
-	var varflag *string
+	var userdirflag *string
 	var cfgpath string
 	// We don't support args passing in testing mode, so we just initialize
 	// empty strings. Vardir will be targeted to default location and mode will
@@ -41,10 +41,10 @@ func Init(project_name string) int {
 		tmp := os.TempDir()
 		// Testing mode has special directory to not interfere with standard
 		// var files.
-		varflag = Atop(path.Join(tmp, project_name, "testing"))
+		userdirflag = Atop(path.Join(tmp, project_name, "testing"))
 		// Each test temporary testing directory is re-created.
-		Mkdir(*varflag)
-		e := os.RemoveAll(*varflag)
+		Mkdir(*userdirflag)
+		e := os.RemoveAll(*userdirflag)
 		if e != nil {
 			Log_Error("In bone, failed to clear tmp directory")
 			return 1
@@ -57,12 +57,12 @@ func Init(project_name string) int {
 		cfgpath = Cwd("testing.cfg")
 	} else {
 		cfgpath = ""
-		varflag = flag.String("bvar", "", "Defines location of var directory.")
+		userdirflag = flag.String("buser", "", "Defines location of user directory.")
 	}
 	flag.Parse()
 
-	if *varflag != "" {
-		baseVardir = *varflag
+	if *userdirflag != "" {
+		baseVardir = *userdirflag
 	} else {
 		switch runtime.GOOS {
 		case "windows":

@@ -1,11 +1,24 @@
 package main
 
 import (
+	"flag"
 	"seva/lib/bone"
+	"seva/lib/shell"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+type Event struct {
+	Domain string
+	// Particular number of event in domain.
+	Order int
+	// Time of event injection.
+	Created_Sec int
+	// Integer type of an event. Each project has own unsigned set of types,
+	// starting from 1.
+	Type int
+}
 
 func create_server() *gin.Engine {
 	server := gin.New()
@@ -15,12 +28,16 @@ func create_server() *gin.Engine {
 	return server
 }
 
-func convert_sec_to_str(sec int) string {
-	return bone.Date_Sec(sec, "2006-01-02 15:04")
-}
-
 func main() {
+	shell_enabled := flag.Bool("shell", false, "Enables shell mode.")
 	bone.Init("seva")
+	shell.Init("seva")
+
+	if *shell_enabled {
+		shell.Run()
+		return
+	}
+
 	server := create_server()
 	server.Run("0.0.0.0:3000")
 }
