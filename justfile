@@ -1,9 +1,9 @@
 set shell := ["nu", "-c"]
 
 run: compile
-    @ ./Bin/Seva
+    @ ./bin/main
 
 compile:
-    @ rm -rf Bin
-    @ mkdir Bin
-    @ go build -o Bin/Seva
+    @ rm -rf bin
+    @ mkdir bin
+    @ go build -o bin/main

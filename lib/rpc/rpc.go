@@ -1,15 +1,16 @@
 package rpc
 
 import (
-	"seva/lib/utils"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Error(c *gin.Context, e *utils.Error) {
-	c.JSON(400, gin.H{"Code": e.Code(), "Body": e.Message()})
+func Error(c *gin.Context, e int) {
+	c.Header("code", strconv.Itoa(e))
 }
 
 func Ok(c *gin.Context, body any) {
-	c.JSON(200, gin.H{"Code": 0, "Body": body})
+	c.Header("code", "0")
+	c.JSON(200, body)
 }

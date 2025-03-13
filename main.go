@@ -1,29 +1,26 @@
 package main
 
 import (
-	"seva/internal/domains"
-	"seva/internal/sevent"
+	"seva/lib/bone"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func createServer() *gin.Engine {
+func create_server() *gin.Engine {
 	server := gin.New()
 	server.Use(gin.Recovery())
 	server.Use(cors.Default())
 
-	server.POST("/Rpc/Domains/CreateDomain", domains.RpcCreateDomain)
-	server.POST("/Rpc/Domains/GetDomains", domains.RpcGetDomains)
-
-	server.POST("/Rpc/Sevent/CreateEvent", sevent.RpcCreateEvent)
-	server.POST("/Rpc/Sevent/GetSpecs", sevent.RpcGetSpecs)
-	server.POST("/Rpc/Sevent/GetEvents", sevent.RpcGetEvents)
-
 	return server
 }
 
+func convert_sec_to_str(sec int) string {
+	return bone.Date_Sec(sec, "2006-01-02 15:04")
+}
+
 func main() {
-	server := createServer()
+	bone.Init("seva")
+	server := create_server()
 	server.Run("0.0.0.0:3000")
 }
