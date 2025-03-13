@@ -18,9 +18,6 @@ const (
 )
 
 type Event struct {
-	Domain string `json:"domain"`
-	// Particular number of event in domain.
-	Order int `json:"order"`
 	// Time of event injection.
 	Created_Sec int `json:"created_sec"`
 	// Integer type of an event. Each project has own unsigned set of types,
@@ -38,15 +35,15 @@ var datafiles = map[string]*os.File{}
 func read_state() int {
 	files, er := os.ReadDir(bone.Userdir())
 	if er != nil {
-		bone.Log_Error("During state reading, cannot read userdir")
+		bone.Log_Error("During state reading, cannot read userdir, error: %s", er)
 		return ERROR
 	}
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".json" {
-			path := filepath.Join()
+			path := filepath.Join(bone.Userdir(), file.Name())
 			data, er := os.ReadFile(path)
 			if er != nil {
-				bone.Log_Error("During state reading, cannot read file '%s'", file.Name())
+				bone.Log_Error("During state reading, cannot read file '%s', error: %s", file.Name(), er)
 				return ERROR
 			}
 			domain := filepath.Base(file.Name())
@@ -54,7 +51,7 @@ func read_state() int {
 			state[domain] = events
 			er = json.Unmarshal(data, &events)
 			if er != nil {
-				bone.Log_Error("Cannot unmarshal file '%s'", file.Name())
+				bone.Log_Error("Cannot unmarshal file '%s', error: %s", file.Name(), er)
 				return ERROR
 			}
 			bone.Log("Loaded domain '%s'", domain)
@@ -104,7 +101,6 @@ func deinit() {
 	for k := range datafiles {
 		delete(datafiles, k)
 	}
-
 }
 
 func main() {
@@ -112,7 +108,7 @@ func main() {
 
 	shell_enabled := flag.Bool("shell", false, "Enables shell mode.")
 	bone.Init("seva")
-	shell.Init("seva")
+	shell.Init()
 
 	e := read_state()
 	if e != OK {
@@ -122,10 +118,15 @@ func main() {
 	}
 
 	if *shell_enabled {
+		shell.Set_Command("setdomain", shell_set_domain)
 		shell.Run()
 		return
 	}
 
 	server := create_server()
 	server.Run("0.0.0.0:3000")
+}
+
+func shell_set_domain(c *shell.Command_Context) int {
+	return OK
 }

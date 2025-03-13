@@ -12,7 +12,7 @@ import (
 type Command_Handler func(ctx *Command_Context) int
 
 var commands = map[string]Command_Handler{}
-var project_name string
+var Domain string = ""
 
 type Command_Context struct {
 	Raw_Input    string
@@ -131,8 +131,7 @@ func process_input(input string) {
 	}
 }
 
-func Init(project_name_ string) {
-	project_name = project_name_
+func Init() {
 }
 
 func Set_Command(key string, handler Command_Handler) {
@@ -148,7 +147,7 @@ func Run() {
 		if prompted {
 			final_sign = "?"
 		}
-		fmt.Printf("\033[33m(%s)\033[0m\033[35m%s\033[0m ", project_name, final_sign)
+		fmt.Printf("\033[33m(%s)\033[0m\033[35m%s\033[0m ", Domain, final_sign)
 		input, er := console_reader.ReadString('\n')
 		if er != nil {
 			if er.Error() != "EOF" {
