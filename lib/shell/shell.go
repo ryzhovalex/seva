@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"seva/lib/bone"
+	"strconv"
 	"strings"
 )
 
@@ -13,12 +14,6 @@ type Command_Handler func(ctx *Command_Context) int
 
 var commands = map[string]Command_Handler{}
 var Domain string = ""
-
-type Command_Context struct {
-	Raw_Input    string
-	Command_Name string
-	Args         []string
-}
 
 const (
 	OK = iota
@@ -29,22 +24,103 @@ var hooks = []any{}
 var prompted = false
 var prompted_callback func(answer bool) int = nil
 
-func (ctx *Command_Context) Has_Arg(arg string) bool {
-	for _, a := range ctx.Args {
-		if a == arg {
-			return true
-		}
-	}
-	return false
+type Command_Context struct {
+	Raw_Input    string
+	Command_Name string
+	Raw_Args     []string
+	args         map[string]string
 }
 
-func (ctx *Command_Context) Has_Arg_Index(arg string) (bool, int) {
-	for i, a := range ctx.Args {
-		if a == arg {
-			return true, i
+func (c *Command_Context) parse() {
+	prev_arg := ""
+	// Collect buffer until the next argument
+	buffer := ""
+	for _, a := range c.Raw_Args {
+		if strings.HasPrefix(a, "-") {
+			if prev_arg != "" {
+				// Assign buffer even if it's empty (e.g. for flag arguments)
+				c.args[prev_arg] = buffer
+			} else if buffer != "" {
+				// If previous argument were not defined, it means we're collecting
+				// input to the main command - in this case we save it under `_` key.
+				// Same operation should be done both before next argument or before end
+				// of the arguments.
+				c.args["_"] = buffer
+			}
+			prev_arg = a
+			buffer = ""
+			continue
 		}
+		buffer += a
 	}
-	return false, -1
+
+	// In case of no arguments and input to the main command.
+	if buffer != "" {
+		c.args["_"] = buffer
+	}
+}
+
+func (c *Command_Context) Arg_String(key string, default_ string) string {
+	if !strings.HasPrefix(key, "-") {
+		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
+		return default_
+	}
+
+	buffer, ok := c.args[key]
+	if !ok {
+		return default_
+	}
+	return buffer
+}
+
+// Returns true if key exists.
+func (c *Command_Context) Arg_Bool(key string, default_ bool) bool {
+	if !strings.HasPrefix(key, "-") {
+		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
+		return default_
+	}
+
+	_, ok := c.args[key]
+	if !ok {
+		return default_
+	}
+	return true
+}
+
+func (c *Command_Context) Arg_Int(key string, default_ int) int {
+	if !strings.HasPrefix(key, "-") {
+		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
+		return default_
+	}
+
+	buffer, ok := c.args[key]
+	if !ok {
+		return default_
+	}
+	r, er := strconv.Atoi(buffer)
+	if er != nil {
+		bone.Log_Error("Unable to convert argument '%s' value '%s' to integer", key, buffer)
+		return default_
+	}
+	return r
+}
+
+func (c *Command_Context) Arg_Float(key string, default_ float64) float64 {
+	if !strings.HasPrefix(key, "-") {
+		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
+		return default_
+	}
+
+	buffer, ok := c.args[key]
+	if !ok {
+		return default_
+	}
+	r, er := strconv.ParseFloat(buffer, 64)
+	if er != nil {
+		bone.Log_Error("Unable to convert argument '%s' value '%s' to float", key, buffer)
+		return default_
+	}
+	return r
 }
 
 func Set_Hooks[T any](items []T) {
@@ -115,15 +191,16 @@ func process_input(input string) {
 		return
 	}
 
-	args := []string{}
+	raw_args := []string{}
 	if len(input_parts) > 1 {
-		args = input_parts[1:]
+		raw_args = input_parts[1:]
 	}
 	ctx := Command_Context{
 		Raw_Input:    input,
 		Command_Name: command_name,
-		Args:         args,
+		Raw_Args:     raw_args,
 	}
+	ctx.parse()
 
 	e := cmd(&ctx)
 	if e > 0 {
