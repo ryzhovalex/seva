@@ -24,7 +24,7 @@ type Event_Signature struct {
 	Type_Name string `json:"type_name"`
 	// Values can be:
 	//   - int
-	//   - str
+	//   - string
 	//   - float
 	//   - array
 	//   - dict
@@ -252,6 +252,8 @@ func main() {
 		shell.Set_Command("setdomain", shell_set_domain)
 		shell.Set_Command("addevent", shell_add_event)
 		shell.Set_Command("addsig", shell_add_signature)
+		shell.Set_Command("ae", shell_add_event)
+		shell.Set_Command("as", shell_add_signature)
 
 		save_state()
 		shell.Run()
@@ -296,10 +298,10 @@ func shell_add_signature(c *shell.Command_Context) int {
 		// We store string anyways, but check signature
 		switch value {
 		case "int":
-		case "str":
+		case "string":
 		case "float":
 		case "bool":
-		case "arr":
+		case "array":
 		case "dict":
 		default:
 			bone.Log_Error("Unrecognized signature value '%s' for event '%s'", value, str_type)
@@ -377,7 +379,7 @@ func shell_add_event(c *shell.Command_Context) int {
 				bone.Log_Error("Cannot convert value '%s' to int for event of type '%s'", sig_value, str_type)
 				return shell.ERROR
 			}
-		case "str":
+		case "string":
 		case "float":
 			_, er := strconv.ParseFloat(value, 64)
 			if er != nil {
@@ -390,7 +392,7 @@ func shell_add_event(c *shell.Command_Context) int {
 				return shell.ERROR
 			}
 		// @Todo implement parsers for arr and dict
-		case "arr":
+		case "array":
 		case "dict":
 		default:
 			bone.Log_Error("Unrecognized value '%s' for signature of event '%s'", sig_value, str_type)
