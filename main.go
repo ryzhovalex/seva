@@ -71,8 +71,8 @@ func read_event_state() int {
 			}
 			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
 			evs := []*Event{}
-			events[domain] = evs
 			er = json.Unmarshal(data, &evs)
+			events[domain] = evs
 			if er != nil {
 				bone.Log_Error("Cannot unmarshal file '%s', error: %s", file.Name(), er)
 				return ERROR
@@ -100,8 +100,8 @@ func read_signature_state() int {
 			}
 			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
 			sigs := []*Event_Signature{}
-			signatures[domain] = sigs
 			er = json.Unmarshal(data, &sigs)
+			signatures[domain] = sigs
 			if er != nil {
 				bone.Log_Error("Cannot unmarshal file '%s', error: %s", file.Name(), er)
 				return ERROR
@@ -113,20 +113,20 @@ func read_signature_state() int {
 
 // Read all files in userdir and unmarshal them to state.
 func read_state() int {
-	e := read_event_state()
+	e := read_signature_state()
 	if e != OK {
 		return e
 	}
-	e = read_signature_state()
+	e = read_event_state()
 	if e != OK {
 		return e
 	}
 
 	// Add "main" domain if does not exist
-	_, ok := events["main"]
+	_, ok := signatures["main"]
 	if !ok {
-		events["main"] = []*Event{}
 		signatures["main"] = []*Event_Signature{}
+		events["main"] = []*Event{}
 		save_state()
 	}
 
