@@ -23,7 +23,8 @@ type Event struct {
 	Created_Sec int `json:"created_sec"`
 	// Integer type of an event. Each project has own unsigned set of types,
 	// starting from 1.
-	Type int `json:"type"`
+	Type   int `json:"type"`
+	Fields map[string]string
 }
 
 // Domains by their list of events
@@ -135,7 +136,8 @@ func main() {
 		shell.Set_Domain(domain)
 
 		shell.Set_Command("setdomain", shell_set_domain)
-		shell.Set_Command("a", shell_add_event)
+		shell.Set_Command("addevent", shell_add_event)
+		shell.Set_Command("addtype", shell_add_event_type)
 
 		save_state()
 		shell.Run()
@@ -146,10 +148,39 @@ func main() {
 	server.Run("0.0.0.0:3000")
 }
 
+func shell_add_event_type(c *shell.Command_Context) int {
+	t := c.Arg_String("_", "")
+	if t == "" {
+		bone.Log_Error("Undefined event type")
+		return shell.ERROR
+	}
+	return shell.OK
+}
+
 func shell_add_event(c *shell.Command_Context) int {
+	str_type := c.Arg_String("_", "")
+	if str_type == "" {
+		bone.Log_Error("Undefined event type")
+		return shell.ERROR
+	}
+	int_type := 0
+
 	event := &Event{
 		Created_Sec: int(bone.Utc()),
+		Type:        int_type,
 	}
+
+	domain := shell.Get_Domain()
+
+	events, ok := state[domain]
+	if !ok {
+		bone.Log_Error("Cannot find domain '%s'", domain)
+		return shell.ERROR
+	}
+	state[domain] = append(events, event)
+
+	save_state()
+	return shell.OK
 }
 
 func shell_set_domain(c *shell.Command_Context) int {

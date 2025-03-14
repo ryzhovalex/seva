@@ -53,6 +53,9 @@ func (c *Command_Context) parse(raw_args []string) {
 			buffer = ""
 			continue
 		}
+		if buffer != "" {
+			buffer += " "
+		}
 		buffer += a
 	}
 
@@ -129,6 +132,13 @@ func (c *Command_Context) Arg_Float(key string, default_ float64) float64 {
 		return default_
 	}
 	return r
+}
+
+func Get_Hook(i int) any {
+	if i >= len(hooks) {
+		return nil
+	}
+	return hooks[i]
 }
 
 func Set_Hooks[T any](items []T) {
