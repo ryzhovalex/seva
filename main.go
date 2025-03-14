@@ -29,7 +29,7 @@ type Event_Signature struct {
 	//   - array
 	//   - dict
 	//   - bool
-	Fields map[string]string
+	Fields map[string]string `json:"fields"`
 }
 
 type Event struct {
@@ -54,17 +54,19 @@ var eventfiles = map[string]*os.File{}
 var sigfiles = map[string]*os.File{}
 
 func read_event_state() int {
-	files, er := os.ReadDir(bone.Userdir("events"))
+	dir := bone.Userdir("events")
+	bone.Mkdir(dir)
+	files, er := os.ReadDir(dir)
 	if er != nil {
 		bone.Log_Error("During state reading, cannot read userdir, error: %s", er)
 		return ERROR
 	}
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".json" {
-			path := filepath.Join(bone.Userdir(), file.Name())
+			path := filepath.Join(dir, file.Name())
 			data, er := os.ReadFile(path)
 			if er != nil {
-				bone.Log_Error("During state reading, cannot read file '%s', error: %s", file.Name(), er)
+				bone.Log_Error("During state reading, cannot read file '%s', error: %s", path, er)
 				return ERROR
 			}
 			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
@@ -81,17 +83,19 @@ func read_event_state() int {
 }
 
 func read_signature_state() int {
-	files, er := os.ReadDir(bone.Userdir("signatures"))
+	dir := bone.Userdir("signatures")
+	bone.Mkdir(dir)
+	files, er := os.ReadDir(dir)
 	if er != nil {
 		bone.Log_Error("During state reading, cannot read userdir, error: %s", er)
 		return ERROR
 	}
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".json" {
-			path := filepath.Join(bone.Userdir(), file.Name())
+			path := filepath.Join(dir, file.Name())
 			data, er := os.ReadFile(path)
 			if er != nil {
-				bone.Log_Error("During state reading, cannot read file '%s', error: %s", file.Name(), er)
+				bone.Log_Error("During state reading, cannot read file '%s', error: %s", path, er)
 				return ERROR
 			}
 			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
@@ -142,12 +146,24 @@ func save_state() {
 		f, ok := eventfiles[domain]
 		if !ok {
 			path := filepath.Join(eventdir, domain+".json")
-			f, er = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+			f, er = os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0644)
 			if er != nil {
 				bone.Log_Error("Cannot open data file for domain '%s' at path '%s'", domain, path)
 				continue
 			}
 			eventfiles[domain] = f
+		}
+
+		er = f.Truncate(0)
+		if er != nil {
+			bone.Log_Error("Cannot truncate file for domain '%s'", domain)
+			continue
+		}
+
+		_, er = f.Seek(0, 0)
+		if er != nil {
+			bone.Log_Error("Cannot seek file of domain '%s'", domain)
+			continue
 		}
 
 		_, er = f.Write(data)
@@ -157,7 +173,7 @@ func save_state() {
 		}
 	}
 
-	sigdir := bone.Userdir("signature")
+	sigdir := bone.Userdir("signatures")
 	bone.Mkdir(sigdir)
 	for domain, sigs := range signatures {
 		data, er := json.MarshalIndent(sigs, "", "\t")
@@ -169,12 +185,24 @@ func save_state() {
 		f, ok := sigfiles[domain]
 		if !ok {
 			path := filepath.Join(sigdir, domain+".json")
-			f, er = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+			f, er = os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0644)
 			if er != nil {
 				bone.Log_Error("Cannot open data file for domain '%s' at path '%s'", domain, path)
 				continue
 			}
 			sigfiles[domain] = f
+		}
+
+		er = f.Truncate(0)
+		if er != nil {
+			bone.Log_Error("Cannot truncate file for domain '%s'", domain)
+			continue
+		}
+
+		_, er = f.Seek(0, 0)
+		if er != nil {
+			bone.Log_Error("Cannot seek file of domain '%s'", domain)
+			continue
 		}
 
 		_, er = f.Write(data)
@@ -241,12 +269,15 @@ func shell_add_signature(c *shell.Command_Context) int {
 		return shell.ERROR
 	}
 	parts := strings.Split(buffer, " ")
-	str_type := parts[0]
+	str_type := strings.ToUpper(parts[0])
 
 	domain := shell.Get_Domain()
 	fields := map[string]string{}
 
-	for _, part := range parts {
+	for i, part := range parts {
+		if i == 0 {
+			continue
+		}
 		subparts := strings.Split(part, "=")
 		if len(subparts) != 2 {
 			bone.Log_Error("Invalid part '%s'", part)
@@ -291,7 +322,7 @@ func shell_add_event(c *shell.Command_Context) int {
 		return shell.ERROR
 	}
 	parts := strings.Split(buffer, " ")
-	str_type := parts[0]
+	str_type := strings.ToUpper(parts[0])
 
 	domain := shell.Get_Domain()
 	sigs, ok := signatures[domain]
@@ -314,7 +345,10 @@ func shell_add_event(c *shell.Command_Context) int {
 
 	// Parse event fields and compare with signature
 	fields := map[string]string{}
-	for _, part := range parts {
+	for i, part := range parts {
+		if i == 0 {
+			continue
+		}
 		subparts := strings.Split(part, "=")
 		if len(subparts) != 2 {
 			bone.Log_Error("Invalid part '%s'", part)
