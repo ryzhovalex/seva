@@ -14,6 +14,11 @@ import (
 	"github.com/go-ini/ini"
 )
 
+const (
+	OK = iota
+	ERROR
+)
+
 type Init_Args struct {
 	Project_Name string
 }
@@ -162,7 +167,30 @@ func activate_environs(value string) string {
 	return value
 }
 
-func (cfg *App_Config) GetString(module string, key string, d string) string {
+func (cfg *App_Config) Write_String(module string, key string, value string) int {
+	// Get or create the section
+	section, er := cfg.data.GetSection(module)
+	if er != nil {
+		// If the section doesn't exist, create it
+		section, er = cfg.data.NewSection(module)
+		if er != nil {
+			Log_Error("In config, cannot create new section, error: %s", er)
+			return ERROR
+		}
+	}
+
+	section.Key(key).SetValue(value)
+
+	er = cfg.data.Reload()
+	if er != nil {
+		Log_Error("Failed to reload config, error: %s", er)
+		return ERROR
+	}
+
+	return OK
+}
+
+func (cfg *App_Config) Get_String(module string, key string, d string) string {
 	moduleData, e := cfg.data.GetSection(module)
 	if e != nil {
 		return d
@@ -175,7 +203,7 @@ func (cfg *App_Config) GetString(module string, key string, d string) string {
 	return activate_environs(valueString)
 }
 
-func (cfg *App_Config) GetBool(module string, key string, d bool) bool {
+func (cfg *App_Config) Get_Bool(module string, key string, d bool) bool {
 	moduleData, e := cfg.data.GetSection(module)
 	if e != nil {
 		return d
@@ -192,7 +220,7 @@ func (cfg *App_Config) GetBool(module string, key string, d bool) bool {
 	return valueBool
 }
 
-func (cfg *App_Config) GetInt(module string, key string, d int) int {
+func (cfg *App_Config) Get_Int(module string, key string, d int) int {
 	moduleData, e := cfg.data.GetSection(module)
 	if e != nil {
 		return d
@@ -207,6 +235,23 @@ func (cfg *App_Config) GetInt(module string, key string, d int) int {
 		return d
 	}
 	return valueInt
+}
+
+func (cfg *App_Config) Get_Float(module string, key string, d float64) float64 {
+	moduleData, e := cfg.data.GetSection(module)
+	if e != nil {
+		return d
+	}
+	valueKey, e := moduleData.GetKey(key)
+	if e != nil {
+		return d
+	}
+	value_float, e := valueKey.Float64()
+	if e != nil {
+		Log_Error("For module `%s` and key `%s`, cannot convert value `%s` to int.", module, key, valueKey.String())
+		return d
+	}
+	return value_float
 }
 
 var Config *App_Config

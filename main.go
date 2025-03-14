@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"seva/lib/bone"
 	"seva/lib/shell"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -46,7 +47,7 @@ func read_state() int {
 				bone.Log_Error("During state reading, cannot read file '%s', error: %s", file.Name(), er)
 				return ERROR
 			}
-			domain := filepath.Base(file.Name())
+			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
 			events := []*Event{}
 			state[domain] = events
 			er = json.Unmarshal(data, &events)
@@ -57,10 +58,20 @@ func read_state() int {
 			bone.Log("Loaded domain '%s'", domain)
 		}
 	}
+
+	// Add "main" domain if does not exist
+	_, ok := state["main"]
+	if !ok {
+		state["main"] = []*Event{}
+		save_state()
+	}
+
 	return OK
 }
 
 func save_state() {
+	datadir := bone.Userdir("data")
+	bone.Mkdir(datadir)
 	for domain, events := range state {
 		data, er := json.MarshalIndent(events, "", "\t")
 		if er != nil {
@@ -70,9 +81,10 @@ func save_state() {
 
 		f, ok := datafiles[domain]
 		if !ok {
-			f, er = os.OpenFile(bone.Userdir("data", domain+".json"), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+			path := filepath.Join(datadir, domain+".json")
+			f, er = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 			if er != nil {
-				bone.Log_Error("Cannot open data file for domain '%s'", domain)
+				bone.Log_Error("Cannot open data file for domain '%s' at path '%s'", domain, path)
 				continue
 			}
 			datafiles[domain] = f
@@ -108,7 +120,6 @@ func main() {
 
 	shell_enabled := flag.Bool("shell", false, "Enables shell mode.")
 	bone.Init("seva")
-	shell.Init()
 
 	e := read_state()
 	if e != OK {
@@ -118,6 +129,8 @@ func main() {
 	}
 
 	if *shell_enabled {
+		shell.Init()
+		shell.Set_Domain(bone.Config.Get_String("main", "domain", "main"))
 		shell.Set_Command("setdomain", shell_set_domain)
 		shell.Run()
 		return
@@ -128,6 +141,19 @@ func main() {
 }
 
 func shell_set_domain(c *shell.Command_Context) int {
-	shell.Set_Domain(c.Arg_String("_", ""))
-	return OK
+	domain := c.Arg_String("_", "main")
+
+	if shell.Get_Domain() == domain {
+		return shell.OK
+	}
+
+	e := shell.Set_Domain(domain)
+	if e != OK {
+		return shell.ERROR
+	}
+
+	state[domain] = []*Event{}
+	save_state()
+
+	return shell.OK
 }

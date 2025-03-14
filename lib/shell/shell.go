@@ -64,6 +64,7 @@ func (c *Command_Context) parse(raw_args []string) {
 	}
 }
 
+// IF BUFFER IS EMPTY RETURN DEFAULT
 func (c *Command_Context) Arg_String(key string, default_ string) string {
 	if !strings.HasPrefix(key, "-") && key != "_" {
 		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
@@ -72,6 +73,9 @@ func (c *Command_Context) Arg_String(key string, default_ string) string {
 
 	buffer, ok := c.args[key]
 	if !ok {
+		return default_
+	}
+	if buffer == "" {
 		return default_
 	}
 	return buffer
@@ -245,10 +249,15 @@ func Run() {
 
 var domain_regex = regexp.MustCompile("^[a-z0-9_]*$")
 
-func Set_Domain(d string) {
+func Get_Domain() string {
+	return domain
+}
+
+func Set_Domain(d string) int {
 	if !domain_regex.MatchString(d) {
 		bone.Log_Error("Incorrect domain '%s'", d)
-		return
+		return ERROR
 	}
 	domain = d
+	return OK
 }
