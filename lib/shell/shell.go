@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"seva/lib/bone"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ import (
 type Command_Handler func(ctx *Command_Context) int
 
 var commands = map[string]Command_Handler{}
-var Domain string = ""
+var domain string = ""
 
 const (
 	OK = iota
@@ -27,15 +28,16 @@ var prompted_callback func(answer bool) int = nil
 type Command_Context struct {
 	Raw_Input    string
 	Command_Name string
-	Raw_Args     []string
 	args         map[string]string
 }
 
-func (c *Command_Context) parse() {
+func (c *Command_Context) parse(raw_args []string) {
+	c.args = map[string]string{}
+
 	prev_arg := ""
 	// Collect buffer until the next argument
 	buffer := ""
-	for _, a := range c.Raw_Args {
+	for _, a := range raw_args {
 		if strings.HasPrefix(a, "-") {
 			if prev_arg != "" {
 				// Assign buffer even if it's empty (e.g. for flag arguments)
@@ -54,14 +56,16 @@ func (c *Command_Context) parse() {
 		buffer += a
 	}
 
-	// In case of no arguments and input to the main command.
-	if buffer != "" {
+	// End of input, assign even empty buffer
+	if prev_arg != "" {
+		c.args[prev_arg] = buffer
+	} else {
 		c.args["_"] = buffer
 	}
 }
 
 func (c *Command_Context) Arg_String(key string, default_ string) string {
-	if !strings.HasPrefix(key, "-") {
+	if !strings.HasPrefix(key, "-") && key != "_" {
 		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
 		return default_
 	}
@@ -75,7 +79,7 @@ func (c *Command_Context) Arg_String(key string, default_ string) string {
 
 // Returns true if key exists.
 func (c *Command_Context) Arg_Bool(key string, default_ bool) bool {
-	if !strings.HasPrefix(key, "-") {
+	if !strings.HasPrefix(key, "-") && key != "_" {
 		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
 		return default_
 	}
@@ -88,7 +92,7 @@ func (c *Command_Context) Arg_Bool(key string, default_ bool) bool {
 }
 
 func (c *Command_Context) Arg_Int(key string, default_ int) int {
-	if !strings.HasPrefix(key, "-") {
+	if !strings.HasPrefix(key, "-") && key != "_" {
 		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
 		return default_
 	}
@@ -106,7 +110,7 @@ func (c *Command_Context) Arg_Int(key string, default_ int) int {
 }
 
 func (c *Command_Context) Arg_Float(key string, default_ float64) float64 {
-	if !strings.HasPrefix(key, "-") {
+	if !strings.HasPrefix(key, "-") && key != "_" {
 		bone.Log_Error("Unable to search argument via non-flag key '%s'", key)
 		return default_
 	}
@@ -198,9 +202,8 @@ func process_input(input string) {
 	ctx := Command_Context{
 		Raw_Input:    input,
 		Command_Name: command_name,
-		Raw_Args:     raw_args,
 	}
-	ctx.parse()
+	ctx.parse(raw_args)
 
 	e := cmd(&ctx)
 	if e > 0 {
@@ -224,7 +227,7 @@ func Run() {
 		if prompted {
 			final_sign = "?"
 		}
-		fmt.Printf("\033[33m(%s)\033[0m\033[35m%s\033[0m ", Domain, final_sign)
+		fmt.Printf("\033[33m(%s)\033[0m\033[35m%s\033[0m ", domain, final_sign)
 		input, er := console_reader.ReadString('\n')
 		if er != nil {
 			if er.Error() != "EOF" {
@@ -238,4 +241,14 @@ func Run() {
 		}
 		process_input(input)
 	}
+}
+
+var domain_regex = regexp.MustCompile("^[a-z0-9_]*$")
+
+func Set_Domain(d string) {
+	if !domain_regex.MatchString(d) {
+		bone.Log_Error("Incorrect domain '%s'", d)
+		return
+	}
+	domain = d
 }

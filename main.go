@@ -128,5 +128,6 @@ func main() {
 }
 
 func shell_set_domain(c *shell.Command_Context) int {
+	shell.Set_Domain(c.Arg_String("_", ""))
 	return OK
 }
