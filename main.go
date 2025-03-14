@@ -270,8 +270,15 @@ func shell_add_signature(c *shell.Command_Context) int {
 	}
 	parts := strings.Split(buffer, " ")
 	str_type := strings.ToUpper(parts[0])
-
 	domain := shell.Get_Domain()
+
+	for _, signature := range signatures[domain] {
+		if signature.Type_Name == str_type {
+			bone.Log_Error("Signature '%s' already exist", str_type)
+			return shell.ERROR
+		}
+	}
+
 	fields := map[string]string{}
 
 	for i, part := range parts {

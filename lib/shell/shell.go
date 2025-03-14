@@ -219,10 +219,7 @@ func process_input(input string) {
 	}
 	ctx.parse(raw_args)
 
-	e := cmd(&ctx)
-	if e > 0 {
-		bone.Log_Error("While calling a command `%s`, an error occured: %s", command_name, bone.Tr_Code(e))
-	}
+	cmd(&ctx)
 }
 
 func Init() {
