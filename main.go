@@ -130,8 +130,10 @@ func main() {
 
 	if *shell_enabled {
 		shell.Init()
-		shell.Set_Domain(bone.Config.Get_String("main", "domain", "main"))
+		domain := bone.Config.Get_String("main", "domain", "main")
+		shell.Set_Domain(domain)
 		shell.Set_Command("setdomain", shell_set_domain)
+		save_state()
 		shell.Run()
 		return
 	}
@@ -152,8 +154,14 @@ func shell_set_domain(c *shell.Command_Context) int {
 		return shell.ERROR
 	}
 
-	state[domain] = []*Event{}
-	save_state()
+	// Cache domain in config for future logins
+	bone.Config.Write_String("main", "domain", domain)
+
+	_, ok := state[domain]
+	if !ok {
+		state[domain] = []*Event{}
+		save_state()
+	}
 
 	return shell.OK
 }

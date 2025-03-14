@@ -100,6 +100,7 @@ func Init(project_name string) int {
 		return 1
 	}
 	Config = &App_Config{
+		path: cfgpath,
 		data: c,
 	}
 	return 0
@@ -139,6 +140,7 @@ func Atop(a string) *string {
 type Config_Key = ini.Key
 
 type App_Config struct {
+	path string
 	data *ini.File
 }
 
@@ -180,6 +182,12 @@ func (cfg *App_Config) Write_String(module string, key string, value string) int
 	}
 
 	section.Key(key).SetValue(value)
+
+	er = cfg.data.SaveTo(cfg.path)
+	if er != nil {
+		Log_Error("Failed to save config, error: %s", er)
+		return ERROR
+	}
 
 	er = cfg.data.Reload()
 	if er != nil {
