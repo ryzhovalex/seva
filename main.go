@@ -130,9 +130,13 @@ func main() {
 
 	if *shell_enabled {
 		shell.Init()
+
 		domain := bone.Config.Get_String("main", "domain", "main")
 		shell.Set_Domain(domain)
+
 		shell.Set_Command("setdomain", shell_set_domain)
+		shell.Set_Command("a", shell_add_event)
+
 		save_state()
 		shell.Run()
 		return
@@ -140,6 +144,12 @@ func main() {
 
 	server := create_server()
 	server.Run("0.0.0.0:3000")
+}
+
+func shell_add_event(c *shell.Command_Context) int {
+	event := &Event{
+		Created_Sec: int(bone.Utc()),
+	}
 }
 
 func shell_set_domain(c *shell.Command_Context) int {
