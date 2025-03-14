@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"seva/lib/bone"
 	"seva/lib/shell"
+	"strconv"
 	"strings"
 
 	"github.com/gin-contrib/cors"
@@ -18,24 +19,42 @@ const (
 	ERROR
 )
 
+type Event_Signature struct {
+	// Integer type is index of signature in the state array.
+	Type_Name string `json:"type_name"`
+	// Values can be:
+	//   - int
+	//   - str
+	//   - float
+	//   - array
+	//   - dict
+	//   - bool
+	Fields map[string]string
+}
+
 type Event struct {
 	// Time of event injection.
 	Created_Sec int `json:"created_sec"`
 	// Integer type of an event. Each project has own unsigned set of types,
 	// starting from 1.
-	Type   int `json:"type"`
-	Fields map[string]string
+	Type   int               `json:"type"`
+	Fields map[string]string `json:"fields"`
 }
 
 // Domains by their list of events
-var state = map[string][]*Event{}
+var events = map[string][]*Event{}
 
-// Datafiles by their domains
-var datafiles = map[string]*os.File{}
+// Domains by their list of event signatures
+var signatures = map[string][]*Event_Signature{}
 
-// Read all files in userdir and unmarshal them to state.
-func read_state() int {
-	files, er := os.ReadDir(bone.Userdir())
+// Event files by their domains
+var eventfiles = map[string]*os.File{}
+
+// Signature files by their domains
+var sigfiles = map[string]*os.File{}
+
+func read_event_state() int {
+	files, er := os.ReadDir(bone.Userdir("events"))
 	if er != nil {
 		bone.Log_Error("During state reading, cannot read userdir, error: %s", er)
 		return ERROR
@@ -49,21 +68,61 @@ func read_state() int {
 				return ERROR
 			}
 			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
-			events := []*Event{}
-			state[domain] = events
-			er = json.Unmarshal(data, &events)
+			evs := []*Event{}
+			events[domain] = evs
+			er = json.Unmarshal(data, &evs)
 			if er != nil {
 				bone.Log_Error("Cannot unmarshal file '%s', error: %s", file.Name(), er)
 				return ERROR
 			}
-			bone.Log("Loaded domain '%s'", domain)
 		}
+	}
+	return OK
+}
+
+func read_signature_state() int {
+	files, er := os.ReadDir(bone.Userdir("signatures"))
+	if er != nil {
+		bone.Log_Error("During state reading, cannot read userdir, error: %s", er)
+		return ERROR
+	}
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".json" {
+			path := filepath.Join(bone.Userdir(), file.Name())
+			data, er := os.ReadFile(path)
+			if er != nil {
+				bone.Log_Error("During state reading, cannot read file '%s', error: %s", file.Name(), er)
+				return ERROR
+			}
+			domain, _ := strings.CutSuffix(file.Name(), filepath.Ext(file.Name()))
+			sigs := []*Event_Signature{}
+			signatures[domain] = sigs
+			er = json.Unmarshal(data, &sigs)
+			if er != nil {
+				bone.Log_Error("Cannot unmarshal file '%s', error: %s", file.Name(), er)
+				return ERROR
+			}
+		}
+	}
+	return OK
+}
+
+// Read all files in userdir and unmarshal them to state.
+func read_state() int {
+	e := read_event_state()
+	if e != OK {
+		return e
+	}
+	e = read_signature_state()
+	if e != OK {
+		return e
 	}
 
 	// Add "main" domain if does not exist
-	_, ok := state["main"]
+	_, ok := events["main"]
 	if !ok {
-		state["main"] = []*Event{}
+		events["main"] = []*Event{}
+		signatures["main"] = []*Event_Signature{}
 		save_state()
 	}
 
@@ -71,24 +130,51 @@ func read_state() int {
 }
 
 func save_state() {
-	datadir := bone.Userdir("data")
-	bone.Mkdir(datadir)
-	for domain, events := range state {
-		data, er := json.MarshalIndent(events, "", "\t")
+	eventdir := bone.Userdir("events")
+	bone.Mkdir(eventdir)
+	for domain, evs := range events {
+		data, er := json.MarshalIndent(evs, "", "\t")
 		if er != nil {
 			bone.Log_Error("Error marshalling state to json for domain '%s'", domain)
 			return
 		}
 
-		f, ok := datafiles[domain]
+		f, ok := eventfiles[domain]
 		if !ok {
-			path := filepath.Join(datadir, domain+".json")
+			path := filepath.Join(eventdir, domain+".json")
 			f, er = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 			if er != nil {
 				bone.Log_Error("Cannot open data file for domain '%s' at path '%s'", domain, path)
 				continue
 			}
-			datafiles[domain] = f
+			eventfiles[domain] = f
+		}
+
+		_, er = f.Write(data)
+		if er != nil {
+			bone.Log_Error("Cannot write to a file for domain '%s'", domain)
+			continue
+		}
+	}
+
+	sigdir := bone.Userdir("signature")
+	bone.Mkdir(sigdir)
+	for domain, sigs := range signatures {
+		data, er := json.MarshalIndent(sigs, "", "\t")
+		if er != nil {
+			bone.Log_Error("Error marshalling state to json for domain '%s'", domain)
+			return
+		}
+
+		f, ok := sigfiles[domain]
+		if !ok {
+			path := filepath.Join(sigdir, domain+".json")
+			f, er = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+			if er != nil {
+				bone.Log_Error("Cannot open data file for domain '%s' at path '%s'", domain, path)
+				continue
+			}
+			sigfiles[domain] = f
 		}
 
 		_, er = f.Write(data)
@@ -108,11 +194,11 @@ func create_server() *gin.Engine {
 }
 
 func deinit() {
-	for _, f := range datafiles {
+	for _, f := range eventfiles {
 		f.Close()
 	}
-	for k := range datafiles {
-		delete(datafiles, k)
+	for k := range eventfiles {
+		delete(eventfiles, k)
 	}
 }
 
@@ -137,7 +223,7 @@ func main() {
 
 		shell.Set_Command("setdomain", shell_set_domain)
 		shell.Set_Command("addevent", shell_add_event)
-		shell.Set_Command("addtype", shell_add_event_type)
+		shell.Set_Command("addsig", shell_add_signature)
 
 		save_state()
 		shell.Run()
@@ -148,36 +234,142 @@ func main() {
 	server.Run("0.0.0.0:3000")
 }
 
-func shell_add_event_type(c *shell.Command_Context) int {
-	t := c.Arg_String("_", "")
-	if t == "" {
-		bone.Log_Error("Undefined event type")
+func shell_add_signature(c *shell.Command_Context) int {
+	buffer := c.Arg_String("_", "")
+	if buffer == "" {
+		bone.Log_Error("Specify at least event type")
 		return shell.ERROR
 	}
+	parts := strings.Split(buffer, " ")
+	str_type := parts[0]
+
+	domain := shell.Get_Domain()
+	fields := map[string]string{}
+
+	for _, part := range parts {
+		subparts := strings.Split(part, "=")
+		if len(subparts) != 2 {
+			bone.Log_Error("Invalid part '%s'", part)
+			return shell.ERROR
+		}
+		key := subparts[0]
+		value := subparts[1]
+
+		// We store string anyways, but check signature
+		switch value {
+		case "int":
+		case "str":
+		case "float":
+		case "bool":
+		case "arr":
+		case "dict":
+		default:
+			bone.Log_Error("Unrecognized signature value '%s' for event '%s'", value, str_type)
+			return shell.ERROR
+		}
+		fields[key] = value
+	}
+
+	signature := &Event_Signature{
+		Type_Name: str_type,
+		Fields:    fields,
+	}
+	_, ok := signatures[domain]
+	if !ok {
+		signatures[domain] = []*Event_Signature{}
+	}
+	signatures[domain] = append(signatures[domain], signature)
+
+	save_state()
 	return shell.OK
 }
 
 func shell_add_event(c *shell.Command_Context) int {
-	str_type := c.Arg_String("_", "")
-	if str_type == "" {
-		bone.Log_Error("Undefined event type")
+	buffer := c.Arg_String("_", "")
+	if buffer == "" {
+		bone.Log_Error("Specify at least event type")
 		return shell.ERROR
 	}
-	int_type := 0
-
-	event := &Event{
-		Created_Sec: int(bone.Utc()),
-		Type:        int_type,
-	}
+	parts := strings.Split(buffer, " ")
+	str_type := parts[0]
 
 	domain := shell.Get_Domain()
-
-	events, ok := state[domain]
+	sigs, ok := signatures[domain]
 	if !ok {
 		bone.Log_Error("Cannot find domain '%s'", domain)
 		return shell.ERROR
 	}
-	state[domain] = append(events, event)
+	var target_signature_type int
+	var target_signature *Event_Signature = nil
+	for i, signature := range sigs {
+		if signature.Type_Name == str_type {
+			target_signature_type = i + 1
+			target_signature = signature
+		}
+	}
+	if target_signature == nil {
+		bone.Log_Error("Cannot find signature for type '%s'", str_type)
+		return shell.ERROR
+	}
+
+	// Parse event fields and compare with signature
+	fields := map[string]string{}
+	for _, part := range parts {
+		subparts := strings.Split(part, "=")
+		if len(subparts) != 2 {
+			bone.Log_Error("Invalid part '%s'", part)
+			return shell.ERROR
+		}
+		key := subparts[0]
+		value := subparts[1]
+		sig_value, ok := target_signature.Fields[key]
+		if !ok {
+			bone.Log_Error("No field with key '%s' in signature for event '%s'", key, str_type)
+			return shell.ERROR
+		}
+
+		// We store string anyways, but check signature
+		switch sig_value {
+		case "int":
+			_, er := strconv.Atoi(value)
+			if er != nil {
+				bone.Log_Error("Cannot convert value '%s' to int for event of type '%s'", sig_value, str_type)
+				return shell.ERROR
+			}
+		case "str":
+		case "float":
+			_, er := strconv.ParseFloat(value, 64)
+			if er != nil {
+				bone.Log_Error("Cannot convert value '%s' to float for event of type '%s'", sig_value, str_type)
+				return shell.ERROR
+			}
+		case "bool":
+			if value != "1" && value != "0" && value != "true" && value != "false" {
+				bone.Log_Error("Cannot convert value '%s' to bool for event of type '%s'", sig_value, str_type)
+				return shell.ERROR
+			}
+		// @Todo implement parsers for arr and dict
+		case "arr":
+		case "dict":
+		default:
+			bone.Log_Error("Unrecognized value '%s' for signature of event '%s'", sig_value, str_type)
+			return shell.ERROR
+		}
+		fields[key] = value
+	}
+
+	event := &Event{
+		Created_Sec: int(bone.Utc()),
+		Type:        target_signature_type,
+		Fields:      fields,
+	}
+
+	evs, ok := events[domain]
+	if !ok {
+		bone.Log_Error("Cannot find domain '%s'", domain)
+		return shell.ERROR
+	}
+	events[domain] = append(evs, event)
 
 	save_state()
 	return shell.OK
@@ -198,11 +390,15 @@ func shell_set_domain(c *shell.Command_Context) int {
 	// Cache domain in config for future logins
 	bone.Config.Write_String("main", "domain", domain)
 
-	_, ok := state[domain]
+	_, ok := events[domain]
 	if !ok {
-		state[domain] = []*Event{}
-		save_state()
+		events[domain] = []*Event{}
 	}
+	_, ok = signatures[domain]
+	if !ok {
+		signatures[domain] = []*Event_Signature{}
+	}
+	save_state()
 
 	return shell.OK
 }
